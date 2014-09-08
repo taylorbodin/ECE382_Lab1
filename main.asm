@@ -30,12 +30,12 @@ main:
 
 	mov.w	#store, R10					; Register 10 is a pointer to RAM
 
-	mov.w	#ts,  R5						; Register 5 is a pointer to the test string
-	mov.b	@R5+, R6						; R6 = value @ M[R5-1] and holds the caboose
-	mov.b	@R5,  R7						; R7 = value @ M[R5] and holds the middle
-	mov.b	1(R5),R8						; R8 = value @ M[R5+1] and holds the engine
+	mov.w	#ts,  R5					; Register 5 is a pointer to the test string
+	mov.b	@R5+, R6					; R6 = value @ M[R5-1] and holds the caboose
+	mov.b	@R5,  R7					; R7 = value @ M[R5] and holds the middle
+	mov.b	1(R5),R8					; R8 = value @ M[R5+1] and holds the engine
 
-check11:								;The following blocks just check for operations and then
+check11:								; The following blocks just check for operations and then
 	cmp.b	#0x11, R7					;jump to the next check or the appropriate operation
 	jnz		check22
 	jmp     add_op
@@ -57,51 +57,68 @@ check44:
 
 next:
 	cmp.b	#0x55, R8
-	jz		end					; if 0x55 is found jump to end
+	jz		end
 	incd.w	R5
-	mov.b	@R5, R7
-	mov.b	1(R5), R8
+	mov.b	@R5, R7					; Double increment keeps R7 on 1,3,5... which is the operation
+	mov.b	1(R5), R8				; One past @R5 is always the second operand
 	jmp		check11
 
-add_op:								; adds the caboose to the engine and writes to memory
+add_op:
 	mov.b	R6, R9
 	add.b	R8, R9
-	mov.b	R9, 0(R10)
 	mov.b	R9, R6
+	call	#min_max
+	mov.b	R6, 0(R10)
+
 	inc.w	R10
 	jmp		next
 
-sub_op:								; subtracts the caboose from the engine and writes to memory
+sub_op:
 	mov.b	R8, R9
 	sub.b	R9, R6
+	call	#min_max
 	mov.b	R6, 0(R10)
 	inc.w	R10
 	jmp		next
 
-mul_op:								;multiplies the caboose and engine using the shift/addition algorithm
-	mov.b	R6, R9					;R9  = multiplicand
-	mov.b	R8, R11					;R11 = multiplier
-	clr.b	R12  					;R12 = result
-	mov.b   #0x08, R13			    ;R13 = loop counter initialized to the word size
+mul_op:								; Multiplies using the shift/addition algorithm
+	mov.b	R6, R9					; R9  = multiplicand
+	mov.b	R8, R11					; R11 = multiplier
+	clr.b	R12  					; R12 = result
+	mov.b   #0x08, R13			    ; R13 = loop counter initialized to the word size
 checkbit:
-    rra.b 	R11
+    rra.b 	R11						; Deterimines if the LSB of a rotated multiplier is 1
     jnc		mul_loop
-    add.b	R9, R12
+    add.b	R9, R12					; If so it adds the multiplicand to the result (A x 1 = A)
 mul_loop:
-	rla.b		R9
+	rla.b	R9						; Shift the multiplicand as the place value of the multiplier goes up
 	dec		R13
 	jnz		checkbit
 mul_finished:
-	mov.b   R12, 0(R10)
+	mov.b	R12, R6					; R6 is our result carrier
+	call	#min_max
+	mov.b   R6, 0(R10)
 	inc.w	R10
 	jmp		next
 
-
-clr_op:								; stores 0x00 to memory
+clr_op:								; Stores 0x00 to memory
 	mov.b	#0x00, 0(R10)
 	mov.b   R8, R6
 	inc.w	R10
 	jmp		next
+
+min_max:							; Checks to see if a value passed through R6 is higher than
+	cmp.b	#0xFF, R6				; 0xFF or lower than 0x00
+	jhs		max						; If R6 higher or the same as max jump to max
+	tst		R6
+	jn		min						; If R6 is negative (less than 0x00) jump to min
+	ret
+max:
+	mov.b	#0xFF, R6
+	ret
+min:
+	mov.b	#0x00, R6
+	ret
 
 end:
 	jmp	    end
