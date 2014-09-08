@@ -15,7 +15,8 @@
 
 ts: 		.byte	0x22, 0x11, 0x22, 0x22, 0x33, 0x33, 0x08, 0x44, 0x08, 0x22, 0x09, 0x44, 0xff, 0x11, 0xff, 0x44, 0xcc, 0x33, 0x02, 0x33, 0x00, 0x44, 0x33, 0x33, 0x08, 0x55
 			.bss	store, 0x40
-clr_bit:	.equ	#0x00
+;clr_bit:	.byte	#0x00
+;word_size:  .byte	#0x10
 ;-------------------------------------------------------------------------------
 RESET       mov.w   #__STACK_END,SP         ; Initialize stackpointer
 StopWDT     mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
@@ -29,10 +30,10 @@ main:
 
 	mov.w	#store, R10					; Register 10 is a pointer to RAM
 
-	mov.w	#ts, R5						; Register 5 is a pointer to the test string
-	mov.b	@R5+,R6						; R6 = value @ M[R5-1] and holds the caboose
-	mov.b	@R5+,R7						; R7 = value @ M[R5] and holds the middle
-	mov.b	@R5+,R8						; R8 = value @ M[R5+1] and holds the engine
+	mov.w	#ts,  R5						; Register 5 is a pointer to the test string
+	mov.b	@R5+, R6						; R6 = value @ M[R5-1] and holds the caboose
+	mov.b	@R5,  R7						; R7 = value @ M[R5] and holds the middle
+	mov.b	1(R5),R8						; R8 = value @ M[R5+1] and holds the engine
 
 check11:								;The following blocks just check for operations and then
 	cmp.b	#0x11, R7					;jump to the next check or the appropriate operation
@@ -46,7 +47,7 @@ check22:
 
 check33:
 	cmp.b	#0x33, R7
-	jnz		next
+	jnz		check44
 	jmp		mul_op
 
 check44:
@@ -56,35 +57,49 @@ check44:
 
 next:
 	cmp.b	#0x55, R8
-	jz		end						; if 0x55 is found jump to end
-	mov.b	R7, R6					; else load up the next set of values into the train
-	mov.b	R8, R7
-	mov.b	@R5+, R8
+	jz		end					; if 0x55 is found jump to end
+	incd.w	R5
+	mov.b	@R5, R7
+	mov.b	1(R5), R8
 	jmp		check11
 
 add_op:								; adds the caboose to the engine and writes to memory
 	mov.b	R6, R9
 	add.b	R8, R9
-	mov.b	R9, @R10
+	mov.b	R9, 0(R10)
+	mov.b	R9, R6
 	inc.w	R10
 	jmp		next
 
 sub_op:								; subtracts the caboose from the engine and writes to memory
 	mov.b	R8, R9
-	sub.b	R6, R9
-	mov.b	R9, @R10
+	sub.b	R9, R6
+	mov.b	R6, 0(R10)
 	inc.w	R10
 	jmp		next
 
-mul_op:								; multiplies the caboose and engine using the following algorithm
-	mov.b	R6, R9					; Shift the multiplier to the right, if the carry flag is set add
-	xor.b	R8, R9					; the multiplicand to the result, shift the multiplicand to the right
-	mov.b	R9, @R10				; rinse and repeat
+mul_op:								;multiplies the caboose and engine using the shift/addition algorithm
+	mov.b	R6, R9					;R9  = multiplicand
+	mov.b	R8, R11					;R11 = multiplier
+	clr.b	R12  					;R12 = result
+	mov.b   #0x08, R13			    ;R13 = loop counter initialized to the word size
+checkbit:
+    rra.b 	R11
+    jnc		mul_loop
+    add.b	R9, R12
+mul_loop:
+	rla.b		R9
+	dec		R13
+	jnz		checkbit
+mul_finished:
+	mov.b   R12, 0(R10)
 	inc.w	R10
 	jmp		next
+
 
 clr_op:								; stores 0x00 to memory
-	mov.b	clr_bit, @R10
+	mov.b	#0x00, 0(R10)
+	mov.b   R8, R6
 	inc.w	R10
 	jmp		next
 
