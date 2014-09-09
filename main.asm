@@ -44,44 +44,41 @@ main:
 
 check11:								; The following blocks just check for operations and then
 	cmp.b	#0x11, R7					;jump to the next check or the appropriate operation
-	jnz		check22
+	jne		check22
 	jmp     add_op
 
 check22:
 	cmp.b	#0x22, R7
-	jnz		check33
+	jne		check33
 	jmp     sub_op
 
 check33:
 	cmp.b	#0x33, R7
-	jnz		check44
+	jne		check44
 	jmp		mul_op
 
 check44:
 	cmp.b  #0x44, R7
-	jnz	   next
+	jne	   next
 	jmp    clr_op
 
 next:
 	cmp.b	#0x55, R8
-	jz		end
+	jeq		end
 	incd.w	R5
 	mov.b	@R5, R7					; Double increment keeps R7 on 1,3,5... which is the operation
 	mov.b	1(R5), R8				; One past @R5 is always the second operand
 	jmp		check11
 
 add_op:								; Adds the second operand (R8) from the result (R6)
-	mov.b	R6, R9
-	add		R8, R9
-	mov		R9, R6
+	add		R8, R6
 	call	#min_max
 	mov.b	R6, 0(R10)
 	inc.w	R10
 	jmp		next
 
 sub_op:								; Subtracts the second operand (R8) from the result (R6)
-	mov.b	R8, R9
-	sub		R9, R6
+	sub		R8, R6
 	call	#min_max
 	mov.b	R6, 0(R10)
 	inc.w	R10
@@ -108,7 +105,7 @@ mul_finished:
 	jmp		next
 
 clr_op:								; Stores 0x00 to memory
-	mov.b	#0x00, 0(R10)
+	clr.b	0(R10)
 	mov.b   R8, R6					; moves the second operand into the first operand (R6) for next op
 	inc.w	R10
 	jmp		next
