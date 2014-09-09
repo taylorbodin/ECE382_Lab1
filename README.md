@@ -15,4 +15,4 @@ Additionally, Lab 1 will also be able to perform:
   * MUL_OP - 0x33 
   
 ## Implementation Plan
-Coming Soon!
+![alt text](flow_chart.jpg)
