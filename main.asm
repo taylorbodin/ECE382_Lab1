@@ -1,7 +1,12 @@
 ;-------------------------------------------------------------------------------
 ; MSP430 Assembler Code Template for use with TI Code Composer Studio
+; Coded by C2C Taylor Bodin
+; Written for ECE 382- Embedded Systems
 ;
-;
+; This code acts as a simple calculator on a stiring of bits. For most operations
+; the result of one operation becomes an operator for the next operation allowing
+; this code to perform multiple operations on a "running" operator. The reults are
+; stored to memory after execution starting at 0x0200
 ;-------------------------------------------------------------------------------
             .cdecls C,LIST,"msp430.h"       ; Include device header file
 
@@ -15,8 +20,10 @@
 
 ts: 		.byte	0x22, 0x11, 0x22, 0x22, 0x33, 0x33, 0x08, 0x44, 0x08, 0x22, 0x09, 0x44, 0xff, 0x11, 0xff, 0x44, 0xcc, 0x33, 0x02, 0x33, 0x00, 0x44, 0x33, 0x33, 0x08, 0x55
 			.bss	store, 0x40
-;clr_bit:	.byte	#0x00
-;word_size:  .byte	#0x10
+;clr_bit    	.equ 	#0x0000
+;word_size   .equ	#0x0008
+;min_val		.equ	#0x0000
+;max_val		.equ	#0x00FF
 ;-------------------------------------------------------------------------------
 RESET       mov.w   #__STACK_END,SP         ; Initialize stackpointer
 StopWDT     mov.w   #WDTPW|WDTHOLD,&WDTCTL  ; Stop watchdog timer
@@ -30,10 +37,10 @@ main:
 
 	mov.w	#store, R10					; Register 10 is a pointer to RAM
 
-	mov.w	#ts,  R5					; Register 5 is a pointer to the test string
-	mov.b	@R5+, R6					; R6 = value @ M[R5-1] and holds the caboose
-	mov.b	@R5,  R7					; R7 = value @ M[R5] and holds the middle
-	mov.b	1(R5),R8					; R8 = value @ M[R5+1] and holds the engine
+	mov.w	#ts,  R5					; Register 5 is a pointer to the case test string
+	mov.b	@R5+, R6					; R6 = value @ M[R5-1] and holds the first operator (usually the result)
+	mov.b	@R5,  R7					; R7 = value @ M[R5] and holds the operation
+	mov.b	1(R5),R8					; R8 = value @ M[R5+1] and holds the second operator
 
 check11:								; The following blocks just check for operations and then
 	cmp.b	#0x11, R7					;jump to the next check or the appropriate operation
@@ -63,19 +70,18 @@ next:
 	mov.b	1(R5), R8				; One past @R5 is always the second operand
 	jmp		check11
 
-add_op:
+add_op:								; Adds the second operand (R8) from the result (R6)
 	mov.b	R6, R9
-	add.b	R8, R9
-	mov.b	R9, R6
+	add		R8, R9
+	mov		R9, R6
 	call	#min_max
 	mov.b	R6, 0(R10)
-
 	inc.w	R10
 	jmp		next
 
-sub_op:
+sub_op:								; Subtracts the second operand (R8) from the result (R6)
 	mov.b	R8, R9
-	sub.b	R9, R6
+	sub		R9, R6
 	call	#min_max
 	mov.b	R6, 0(R10)
 	inc.w	R10
@@ -87,15 +93,15 @@ mul_op:								; Multiplies using the shift/addition algorithm
 	clr.b	R12  					; R12 = result
 	mov.b   #0x08, R13			    ; R13 = loop counter initialized to the word size
 checkbit:
-    rra.b 	R11						; Deterimines if the LSB of a rotated multiplier is 1
+    rra 	R11						; Deterimines if the LSB of a rotated multiplier is 1
     jnc		mul_loop
-    add.b	R9, R12					; If so it adds the multiplicand to the result (A x 1 = A)
+    add		R9, R12					; If so it adds the multiplicand to the result (A x 1 = A)
 mul_loop:
-	rla.b	R9						; Shift the multiplicand as the place value of the multiplier goes up
+	rla		R9						; Shift the multiplicand as the place value of the multiplier goes up
 	dec		R13
 	jnz		checkbit
 mul_finished:
-	mov.b	R12, R6					; R6 is our result carrier
+	mov		R12, R6					; R6 is our result
 	call	#min_max
 	mov.b   R6, 0(R10)
 	inc.w	R10
@@ -103,15 +109,15 @@ mul_finished:
 
 clr_op:								; Stores 0x00 to memory
 	mov.b	#0x00, 0(R10)
-	mov.b   R8, R6
+	mov.b   R8, R6					; moves the second operand into the first operand (R6) for next op
 	inc.w	R10
 	jmp		next
 
-min_max:							; Checks to see if a value passed through R6 is higher than
-	cmp.b	#0xFF, R6				; 0xFF or lower than 0x00
-	jhs		max						; If R6 higher or the same as max jump to max
-	tst		R6
-	jn		min						; If R6 is negative (less than 0x00) jump to min
+min_max:							; Checks to see if R6 higher than max or lower than min
+	tst		R6						; If R6 is negative (less than 0x0000 which is the min) jump to min
+	jn		min
+	cmp		#0x00FF, R6				; If R6 higher or the same as max jump to max
+	jhs		max
 	ret
 max:
 	mov.b	#0xFF, R6
