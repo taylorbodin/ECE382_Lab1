@@ -35,8 +35,8 @@ main:
 
 This section of code draws heavily upon lec6.asm which was an example program in class that performed the same
 function as what was required of this code. The intent of this block is to:
- * Initilize a pointer (R10) that points to the beginning of the desired block of results storage in RAM
- * Initilize a pointer (R5) that points to the location of the test string in ROM
+ * Initialize a pointer (R10) that points to the beginning of the desired block of results storage in RAM
+ * Initialize a pointer (R5) that points to the location of the test string in ROM
  * "Load the train" by placing the first operand in R6, the operation in R7, and the second operand in R8
 
 The fundemental difference between this block and the one from lec6.asm is the way that R5 is incremented. Instead
@@ -213,4 +213,49 @@ with tst which was screwing with my results. Luckily, the fix was as easy as put
 "end" is a simple CPU trap to trap the CPU once a end operation was discoverd in "next:"
 	
 ## Debugging/Testing
+
+### Methodology
+
+Ambitiously, I loaded the A Functionality test case into the test string at the very beginning of my testing. My thinking
+was that because the A functionality presented operations in order of increasing difficulty I could measure my progress
+by looking at the early results and then building to the middle and later results. I would run the program through this
+test case, look at the results, guess where something went wrong and insert a breakpoint, restart the program, and step 
+through the operation of interest. This method worked very well and allowed me to achieve a final product in about 4 
+itterations. 
+
+### Commit 1
+
+This commit was little more than a copy of lec6.asm to serve a as a springboard for further commits. I hadn't really 
+read the problem statement too well at this point and thought that lec6.asm and the problem were doing similiar
+things. As the commit discription says however, it's just a basic skeleton to build off of. I noticed my program was
+only doing the first result correctly. I found that my "train" registers weren't being loaded correctly and I knew this
+was going to be an emphasis on the next commit. I reread the problem and started on commit 2.
+
+### Commit 2
+
+On this commit I corrected the way the test string pointer was incremented so that it always pointed to operations. This
+correction stayed through to the final product and can be seen in my discussion of the "next" above. This was more inline 
+with the lab 1 requirements. I also attempted to implement the MUL_OP instruction. My first seemed to work but as I found
+out in later testing it still needed some tweaking. 
+
+### Commit 3
+
+This commit added the min_max functionality. At first it appeared to work but I again found out that it needed some work
+in later testing. 
+
+### Commit 4
+
+I found my final bug in this commit. My min_max functionality was not working as indicated by incorrect values being stored to memory when results should've exceeded the min and maxes laid out by the lab. What I discovered was that I had foolishly added
+a .b for bit operation to many operations that didn't need it. As a result I was only comparing, adding, testing, and subtracting bits which gave me incorrect results. What I reasoned was that I could pretty much leave out the .b on everything
+except for the final mov.b instructions to memory. 
+
+### Final Commit
+
+I removed some unnecessary moves to intermediate registers in the add and subtract. I also changed some of my jump instructions to improve readablility. I was using jz when I should've been using jeq for example. I also cleaned up my clear
+op by using clr.b instead of a mov.b #0x00 which helps with readability. Below is the result of this build when run on the 
+a functionality test case. 
+
+![hi](a_functionality.jpg)
+
+## Conclusion and Lessons Learned
 Coming Soon!
