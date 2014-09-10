@@ -18,7 +18,7 @@ Additionally, Lab 1 will also be able to perform:
 ![alt text](flow_chart.jpg)
 
 ## Code
-### Initiliziation
+### Initialization
 
 ```
 main:
@@ -39,30 +39,30 @@ function as what was required of this code. The intent of this block is to:
  * Initialize a pointer (R5) that points to the location of the test string in ROM
  * "Load the train" by placing the first operand in R6, the operation in R7, and the second operand in R8
 
-The fundemental difference between this block and the one from lec6.asm is the way that R5 is incremented. Instead
-of advancing R5 to postion 3 in the test string it is left at position 1 which will be significant in later lines of 
+The fundamental difference between this block and the one from lec6.asm is the way that R5 is incremented. Instead
+of advancing R5 to position 3 in the test string it is left at position 1 which will be significant in later lines of 
 code.
 
 ### Operation Checks
 
 ```
 check11:								   ; The following blocks just check for operations and then
-	cmp.b	#0x11, R7			;jump to the next check or the appropriate operation
+	cmp.b	#add_val, R7			;jump to the next check or the appropriate operation
 	jne		check22
 	jmp     add_op
 
 check22:
-	cmp.b	#0x22, R7
+	cmp.b	#sub_val, R7
 	jne		check33
 	jmp     sub_op
 
 check33:
-	cmp.b	#0x33, R7
+	cmp.b	#multiply_val, R7
 	jne		check44
 	jmp		mul_op
 
 check44:
-	cmp.b  #0x44, R7
+	cmp.b  #clear_val, R7
 	jne	   next
 	jmp    clr_op
 ```
@@ -78,7 +78,7 @@ ease of reuse of code.
 	
 ```
 	next:
-	cmp.b	#0x55, R8
+	cmp.b	#end_val, R8
 	jeq		end
 	incd.w	R5
 	mov.b	@R5, R7					 ; Double increment keeps R7 on 1,3,5... which is the operation
@@ -86,12 +86,12 @@ ease of reuse of code.
 	jmp		check11
 ```
 	
-This block of code caused me a lot of heartache early on in developement. In lec6.asm R6 always held -1(R7) which 
+This block of code caused me a lot of heartache early on in development. In lec6.asm R6 always held -1(R7) which 
 wasn't very useful for Lab 1 because R6 needed to hold the result of the last operation to be an operand in the
 next operation (usually). To fix this issue, I allowed the individual operations to store their results into R6
 so I wouldn't have to worry about loading it up in "next:" for the next operation and I changed the way I moved
 the test string pointer. R5 is now double incremented. This allows R5 to stay on position 1,3,5,7... and so on.
-The siginficance of this is that since operations are always stored at odd locations, R5 always points to the 
+The significance of this is that since operations are always stored at odd locations, R5 always points to the 
 operation. R8 was easy because, as the comment says, one past the operation is always the second operand. 
 	
 ### ADD_OP
@@ -133,7 +133,7 @@ This block is also pretty straightforward. It performs the same functions as ADD
 	clr.b	R12  					     ; R12 = result
 	mov.b   #0x08, R13	  ; R13 = loop counter initialized to the word size
 checkbit:
-    rra 	R11						  ; Deterimines if the LSB of a rotated multiplier is 1
+    rra 	R11						  ; Determines if the LSB of a rotated multiplier is 1
     jnc		mul_loop
     add		R9, R12				; If so it adds the multiplicand to the result (A x 1 = A)
 mul_loop:
@@ -170,7 +170,7 @@ O(log n) time so I leave that to the evaluator.
 ```
 	
 CLR_OP clears the byte stored in RAM pointed to by 0(R10). It then takes the second operand and places it into the
-first fot the next operation as per the instructions. 
+first for the next operation as per the instructions. 
 	
 ### min_max
 	
@@ -178,28 +178,28 @@ first fot the next operation as per the instructions.
 	min_max:							; Checks to see if R6 higher than max or lower than min
 	tst		R6						; If R6 is negative (less than 0x0000 which is the min) jump to min
 	jn		min
-	cmp		#0x00FF, R6				; If R6 higher or the same as max jump to max
+	cmp		#max_val, R6				; If R6 higher or the same as max jump to max
 	jhs		max
 	ret
 max:
-	mov.b	#0xFF, R6
+	mov.b	#max_val, R6
 	ret
 min:
-	mov.b	#0x00, R6
+	mov.b	#min_val, R6
 	ret
 	
 ```
 	
 "min_max" was my first use of subroutines in assembly. I saw a need for a subroutine because each operation, with the 
 exception of CLR_OP, had the chance of breaking the min and max values established by functionality b requirements.
-Instead of putting this block into every operation, I chose to increase readability and reusablility by breaking 
+Instead of putting this block into every operation, I chose to increase readability and reusability by breaking 
 this requirement into a subroutine. Each operation makes a call to min_max after it has performed its operations
 and placed the result in R6. If R6 is greater than 0x00FF it writes 0xFF to R6 and returns. Likewise if R6 is negative,
 which is to say less than zero, then 0x00 is written to R6 and it returns. If neither is true min_max just returns 
 without altering the value of R6. This function taught me the importance of working the bit versus the whole word. 
-In this case we need to work with the whole word otherwise we can lose infomation. For instance, in the a functionality
+In this case we need to work with the whole word otherwise we can lose information. For instance, in the a functionality
 test case a result of one of the addition ops is 0x01FE. If I were to use cmp.b #0xFF, R6. Then R6 would be unaltered
-because 0xFE is less than 0xFF, when in reality R6 holds 0x01FE. I also learned to becareful with my use of tst.
+because 0xFE is less than 0xFF, when in reality R6 holds 0x01FE. I also learned to be careful with my use of tst.
 I originally had it after the cmp which didn't work because cmp was setting the status flags I needed to check 
 with tst which was screwing with my results. Luckily, the fix was as easy as putting tst first. 
 	
@@ -210,7 +210,7 @@ with tst which was screwing with my results. Luckily, the fix was as easy as put
 	jmp	    end
 ```
 	
-"end" is a simple CPU trap to trap the CPU once a end operation was discoverd in "next:"
+"end" is a simple CPU trap to trap the CPU once a end operation was discovered in "next:"
 	
 ## Debugging/Testing
 
@@ -221,13 +221,13 @@ was that because the A functionality presented operations in order of increasing
 by looking at the early results and then building to the middle and later results. I would run the program through this
 test case, look at the results, guess where something went wrong and insert a breakpoint, restart the program, and step 
 through the operation of interest. This method worked very well and allowed me to achieve a final product in about 4 
-itterations. 
+iterations. 
 
 ### Commit 1
 
 This commit was little more than a copy of lec6.asm to serve a as a springboard for further commits. I hadn't really 
-read the problem statement too well at this point and thought that lec6.asm and the problem were doing similiar
-things. As the commit discription says however, it's just a basic skeleton to build off of. I noticed my program was
+read the problem statement too well at this point and thought that lec6.asm and the problem were doing similar
+things. As the commit description says however, it's just a basic skeleton to build off of. I noticed my program was
 only doing the first result correctly. I found that my "train" registers weren't being loaded correctly and I knew this
 was going to be an emphasis on the next commit. I reread the problem and started on commit 2.
 
@@ -251,7 +251,7 @@ except for the final mov.b instructions to memory.
 
 ### Final Commit
 
-I removed some unnecessary moves to intermediate registers in the add and subtract. I also changed some of my jump instructions to improve readablility. I was using jz when I should've been using jeq for example. I also cleaned up my clear
+I removed some unnecessary moves to intermediate registers in the add and subtract. I also changed some of my jump instructions to improve readability. I was using jz when I should've been using jeq for example. I also cleaned up my clear
 op by using clr.b instead of a mov.b #0x00 which helps with readability. Below is the result of this build when run on the 
 a functionality test case. 
 
