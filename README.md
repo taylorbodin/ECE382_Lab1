@@ -258,4 +258,7 @@ a functionality test case.
 ![hi](a_functionality.jpg)
 
 ## Conclusion and Lessons Learned
-Coming Soon!
+
+Lab 1 really highlighted two important learning points for me. The first was to have a solid plan with pseudo code before jumping into to the programming. This involve actually reading the lab in its entirety, working out the nitty gritty details, and formalizing that into flow charts and pseudo code. I had to rework a lot of code and took more time than neccessary because I didn't prepare. 
+
+The second big lesson I learned was to be careful with .bit vs .word modifiers for operations. I need to think about what I'm trying to do rather than tag blindly. 
